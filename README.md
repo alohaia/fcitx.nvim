@@ -5,7 +5,12 @@ A NeoVim plugin for storing and restoring fcitx status of several mode groups se
 This plugin stores fcitx status while leaving a <ins>mode group</ins> and restore a mode group's
 fcitx group while entering this group. All disabled mode groups and other modes share one status.
 
-**Mode group**: See `:h mode()`. For example, `insert` mode group includes `i`, `ic` and `ix`.
+**Mode group**:
+
+- `insert`: See `:h InsertEnter`
+- `cmdline`: See `:h CmdlineEnter`, `:`, `>`, `=`, and `@`
+- `cmdtext`: See `:h CmdlineEnter`, `/`, `?` and `-`
+- `select`: See `:h ModeChanged`, `s`, `S` and `\S`
 
 ## Installation
 
@@ -43,12 +48,14 @@ default options:
 ```lua
 enable = {
     insert = true,
-    cmdline = true,
+    cmdline = false,
+    cmdtext = true,
     select = true,
-    replace = true
 },
 guess_initial_status = true
 ```
+
+> It's not a good idea to enable `cmdline`, because it's used everywhere implicitly.
 
 - `enable`: Fcitx status of each enabled modes is stored separately, others' status is stored together.
 - `guess_initial_status`: Whether to get **initial status** of one mode from related modes whose status is initialized.
@@ -60,10 +67,10 @@ The default guessing strategy:
 
 ```lua
 {
-    insert = {'select', 'replace'},
+    insert = {'select', 'cmdtext'},
     cmdline = {'others'},
-    select = {'insert', 'replace'},
-    replace = {'insert', 'select'},
+    cmdtext = {'insert', 'select'},
+    select = {'insert', 'cmdtext'},
     others = {}
 }
 ```
