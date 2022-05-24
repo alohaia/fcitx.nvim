@@ -38,23 +38,6 @@ local function set_status(to_status)
     end
 end
 
--- translate output of vim.fn.mode into "insert", "cmdline",
---  "select", "replace" or "others" according to settings
--- modes set to false in settings are regarded as "others"
--- local function translate_mode(md, settings)
---     if md == "i" and settings.enable.insert then
---         return "insert"
---     elseif md == "c" and settings.enable.cmdline then
---         return "cmdline"
---     elseif md == "s" or md == "S" or md == "\19" and settings.enable.select then
---         return "select"
---     elseif md == "R" and settings.enable.replace then
---         return "replace"
---     else
---         return "others"
---     end
--- end
-
 -- guess initial status
 -- return nil if settings.guess_initial_status is nil or false
 local function guess_status(mode, settings)
@@ -85,44 +68,6 @@ FCITX_LOG = {}
 local function appendlog(str, ...)
     table.insert(FCITX_LOG, string.format(str, ...))
     vim.fn.setqflist({}, 'r', {title = 'Fcitx Log', lines = vim.fn.reverse(FCITX_LOG)})
-end
-
--- local last
--- function modechanged_callback()
---     local old_mode = translate_mode(vim.v.event.old_mode, settings)
---     local new_mode = translate_mode(vim.v.event.new_mode, settings)
---     if new_mode == old_mode then
---         return
---     end
---
---     local now = vim.fn.reltimefloat(vim.fn.reltime())
---     if last and now - last < 0.1 then
---         appendlog("%s(%s)(%1.4f) -> %s(%s), skip", old_mode, vim.v.event.old_mode, (now - last), new_mode, vim.v.event.new_mode)
---         goto afterstore
---     elseif last then
---         appendlog("%s(%s)(%1.4f) -> %s(%s), far enough", old_mode, vim.v.event.old_mode, (now - last), new_mode, vim.v.event.new_mode)
---     else
---         appendlog("%s(%s)(start) -> %s(%s), far enough", old_mode, vim.v.event.old_mode, new_mode, vim.v.event.new_mode)
---     end
---
---     last = vim.fn.reltimefloat(vim.fn.reltime())
--- end
-
-local function modeEnter(mode)
-    appendlog("----- Enter %s -----", mode)
-    status.others = get_status()
-    appendlog("store status %d for mode others", status[mode])
-
-    if status[mode] then
-        set_status(status[mode])
-        appendlog("set status %d for mode %s", status[mode], mode)
-    elseif settings.guess_initial_status then
-        local guess_result = guess_status(mode, settings)
-        if guess_result then
-            set_status(guess_result)
-            appendlog("guess and set status %d for mode %s", guess_result, mode)
-        end
-    end
 end
 
 local function modeChange(behaviour, mode)
@@ -213,12 +158,12 @@ return function (_settings)
         vim.api.nvim_create_autocmd("ModeChanged", {
             group = fcitx_au_id,
             pattern = {"*:s", "*:S", "*:\19"},
-            callback = function () modeEnter("select") end
+            callback = function () modeChange("enter", "select") end
         })
         vim.api.nvim_create_autocmd("ModeChanged", {
             group = fcitx_au_id,
             pattern = {"s:*", "S:*", "\19:*"},
-            callback = function () modeLeave("select") end
+            callback = function () modeChange("leave", "select") end
         })
     end
 end
