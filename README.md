@@ -1,6 +1,6 @@
 <h1 align="center">Fcitx.nvim</h1>
 
-A NeoVim plugin for storing and restoring fcitx status of several mode groups separately.
+A Neovim plugin for storing and restoring fcitx status of several mode groups separately.
 
 This plugin stores fcitx status while leaving a <ins>mode group</ins> and restore a mode group's
 fcitx group while entering this group. All disabled mode groups and other modes share one status.
