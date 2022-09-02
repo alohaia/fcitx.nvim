@@ -64,12 +64,6 @@ local function guess_status(mode, settings)
     return nil
 end
 
-FCITX_LOG = {}
-local function appendlog(str, ...)
-    table.insert(FCITX_LOG, string.format(str, ...))
-    vim.fn.setqflist({}, 'r', {title = 'Fcitx Log', lines = vim.fn.reverse(FCITX_LOG)})
-end
-
 local function modeChange(behaviour, mode)
     local old_mode
     local new_mode
@@ -81,18 +75,14 @@ local function modeChange(behaviour, mode)
         new_mode = mode
     end
 
-    appendlog("----- %s %s -----", behaviour, mode)
     status[old_mode] = get_status()
-    appendlog("store status %d for mode %s", status[old_mode], old_mode)
 
     if status[new_mode] then
         set_status(status[new_mode])
-        appendlog("set status %d for mode %s", status[new_mode], new_mode)
     elseif settings.guess_initial_status then
         local guess_result = guess_status(new_mode, settings)
         if guess_result then
             set_status(guess_result)
-            appendlog("guess and set status %d for mode %s", guess_result, new_mode)
         end
     end
 end
@@ -115,7 +105,6 @@ return function (_settings)
     --     callback = modechanged_callback
     -- })
     if settings.enable.insert then
-        appendlog("insert")
         vim.api.nvim_create_autocmd("InsertEnter", {
             group = fcitx_au_id,
             pattern = "*",
@@ -128,7 +117,6 @@ return function (_settings)
         })
     end
     if settings.enable.cmdline then
-        appendlog("cmdline")
         vim.api.nvim_create_autocmd("CmdlineEnter", {
             group = fcitx_au_id,
             pattern = "[:>=@]",
@@ -141,7 +129,6 @@ return function (_settings)
         })
     end
     if settings.enable.cmdtext then
-        appendlog("cmdtext")
         vim.api.nvim_create_autocmd("CmdlineEnter", {
             group = fcitx_au_id,
             pattern = "[/\\?-]",
@@ -154,7 +141,6 @@ return function (_settings)
         })
     end
     if settings.enable.select then
-        appendlog("select")
         vim.api.nvim_create_autocmd("ModeChanged", {
             group = fcitx_au_id,
             pattern = {"*:s", "*:S", "*:\19"},
