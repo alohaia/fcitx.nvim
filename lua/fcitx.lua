@@ -40,8 +40,8 @@ end
 
 -- guess initial status
 -- return nil if settings.guess_initial_status is nil or false
-local function guess_status(mode, settings)
-    if not settings.guess_initial_status then
+local function guess_status(mode, s)
+    if not s.guess_initial_status then
         return nil
     end
 
@@ -49,11 +49,12 @@ local function guess_status(mode, settings)
         insert = {'select', 'cmdtext'},
         cmdline = {'others'},
         cmdtext = {'insert', 'select'},
+        terminal = {'cmdline', 'others'},
         select = {'insert', 'cmdtext'},
         others = {}
     }
-    if type(settings.guess_initial_status) == "table" then
-        strategy = vim.tbl_extend("keep", settings.guess_initial_status, strategy)
+    if type(s.guess_initial_status) == "table" then
+        strategy = vim.tbl_extend("keep", s.guess_initial_status, strategy)
     end
 
     for _,m in pairs(strategy[mode]) do
@@ -92,18 +93,14 @@ return function (_settings)
     settings = vim.tbl_deep_extend("keep", _settings, {
         enable = {
             insert = true,
-            cmdline = false,
+            cmdline = true,
             cmdtext = true,
+            terminal = true,
             select = true,
         },
         guess_initial_status = true,
     })
     local fcitx_au_id = vim.api.nvim_create_augroup("fcitx", {clear=true})
-    -- vim.api.nvim_create_autocmd("ModeChanged", {
-    --     group = fcitx_au_id,
-    --     pattern = "*",
-    --     callback = modechanged_callback
-    -- })
     if settings.enable.insert then
         vim.api.nvim_create_autocmd("InsertEnter", {
             group = fcitx_au_id,
@@ -124,7 +121,7 @@ return function (_settings)
         })
         vim.api.nvim_create_autocmd("CmdlineLeave", {
             group = fcitx_au_id,
-            pattern = "[/\\?-]",
+            pattern = "[:>=@]",
             callback = function () modeChange("leave", "cmdline") end
         })
     end
@@ -138,6 +135,18 @@ return function (_settings)
             group = fcitx_au_id,
             pattern = "[/\\?-]",
             callback = function () modeChange("leave", "cmdtext") end
+        })
+    end
+    if settings.enable.terminal then
+        vim.api.nvim_create_autocmd("TermEnter", {
+            group = fcitx_au_id,
+            pattern = "*",
+            callback = function () modeChange("enter", "terminal") end
+        })
+        vim.api.nvim_create_autocmd("TermLeave", {
+            group = fcitx_au_id,
+            pattern = "*",
+            callback = function () modeChange("leave", "terminal") end
         })
     end
     if settings.enable.select then

@@ -10,7 +10,8 @@ fcitx group while entering this group. All disabled mode groups and other modes 
 - `insert`: See `:h InsertEnter`
 - `cmdline`: See `:h CmdlineEnter`, `:`, `>`, `=`, and `@`
 - `cmdtext`: See `:h CmdlineEnter`, `/`, `?` and `-`
-- `select`: See `:h ModeChanged`, `s`, `S` and `\S`
+- `terminal`: See `:h TermEnter`
+- `select`: See `:h mode()`, `s`, `S` and `\S`
 
 ## Installation
 
@@ -48,8 +49,9 @@ default options:
 ```lua
 enable = {
     insert = true,
-    cmdline = false,
+    cmdline = true,
     cmdtext = true,
+    terminal = true,
     select = true,
 },
 guess_initial_status = true
@@ -70,6 +72,7 @@ The default guessing strategy:
     insert = {'select', 'cmdtext'},
     cmdline = {'others'},
     cmdtext = {'insert', 'select'},
+    terminal = {'cmdline', 'others'},
     select = {'insert', 'cmdtext'},
     others = {}
 }
@@ -83,6 +86,7 @@ For instance, you don't want guess `insert`'s initial status, thus you can set `
 ```lua
 guess_initial_status = {
     insert = {}
+    -- ...
 }
 ```
 
