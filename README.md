@@ -49,7 +49,7 @@ default options:
 ```lua
 enable = {
     insert = true,
-    cmdline = true,
+    cmdline = false,
     cmdtext = true,
     terminal = true,
     select = true,

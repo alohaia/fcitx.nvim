@@ -93,7 +93,7 @@ return function (_settings)
     settings = vim.tbl_deep_extend("keep", _settings, {
         enable = {
             insert = true,
-            cmdline = true,
+            cmdline = false,
             cmdtext = true,
             terminal = true,
             select = true,
