@@ -2,8 +2,8 @@
 
 A Neovim plugin for storing and restoring fcitx status of several mode groups separately.
 
-This plugin stores fcitx status while leaving a <ins>mode group</ins> and restore a mode group's
-fcitx group while entering this group. All disabled mode groups and other modes share one status.
+This plugin stores fcitx status while leaving a <ins>mode group</ins> and restores a mode group's
+fcitx status while entering this group. All disabled mode groups and other modes share one status.
 
 **Mode group**:
 
@@ -15,7 +15,7 @@ fcitx group while entering this group. All disabled mode groups and other modes 
 
 ## Installation
 
-For [packer](https://github.com/wbthomason/packer.nvim) user:
+For [packer.nvim](https://github.com/wbthomason/packer.nvim) user:
 
 ```lua
 require('packer').startup(function()
