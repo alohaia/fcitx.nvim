@@ -62,7 +62,7 @@ guess_initial_status = {
     normal   = {},
     insert   = {'select', 'cmdtext'},
     cmdline  = {'normal'},
-    cmdtext  = {'insert', 'select'},
+    cmdtext  = {'cmdline', 'insert'},
     terminal = {'cmdline', 'normal'},
     select   = {'insert', 'cmdtext'},
 },
