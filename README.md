@@ -2,20 +2,23 @@
 
 A Neovim plugin for storing and restoring fcitx status of several mode groups separately.
 
-This plugin stores fcitx status while leaving a <ins>mode group</ins> and restores a mode group's
-fcitx status while entering this group. All disabled mode groups and other modes share one status.
+This plugin stores fcitx status while leaving a <ins>mode group</ins> and restores a mode group's fcitx status while entering this group. All disabled mode groups and other modes share one status.
 
-**Mode group**:
+> P.S. This plugin uses timer of `vim.loop` to make some delay, in order to avoid too frequent switching.
 
-- `insert`: See `:h InsertEnter`
-- `cmdline`: See `:h CmdlineEnter`, `:`, `>`, `=`, and `@`
-- `cmdtext`: See `:h CmdlineEnter`, `/`, `?` and `-`
-- `terminal`: See `:h TermEnter`
-- `select`: See `:h mode()`, `s`, `S` and `\S`
+**Mode group**(see `:h mode()` and `:h ModeChanged`):
+
+- `normal`: `[nvV^V]*`
+- `insert`: `i*`
+- `cmdline` and `cmdtext`: `c*`
+    - `cmdline`: See `:h getcmdtype()`, `:`, `>` and `=`
+    - `cmdtext`: See `:h getcmdtype()`, `/`, `?`, `-` , and `@`
+- `terminal`: `[t!]`
+- `select`: `[sS^S]`
 
 ## Installation
 
-For [packer.nvim](https://github.com/wbthomason/packer.nvim) user:
+With [packer.nvim](https://github.com/wbthomason/packer.nvim):
 
 ```lua
 require('packer').startup(function()
@@ -29,7 +32,7 @@ require('packer').startup(function()
 end)
 ```
 
-For my built-in packer(See [here](https://github.com/alohaia/nvimcfg)):
+With my built-in packer(See [here](https://github.com/alohaia/nvimcfg)):
 
 ```lua
 ['alohaia/fcitx.nvim'] = {
@@ -44,49 +47,58 @@ For my built-in packer(See [here](https://github.com/alohaia/nvimcfg)):
 
 ## Options
 
-default options:
+Default options:
 
 ```lua
 enable = {
-    insert = true,
-    cmdline = false,
-    cmdtext = true,
+    normal   = true,
+    insert   = true,
+    cmdline  = true,
+    cmdtext  = true,
     terminal = true,
-    select = true,
+    select   = true,
 },
-guess_initial_status = true
+guess_initial_status = {
+    normal   = {},
+    insert   = {'select', 'cmdtext'},
+    cmdline  = {'normal'},
+    cmdtext  = {'insert', 'select'},
+    terminal = {'cmdline', 'normal'},
+    select   = {'insert', 'cmdtext'},
+},
+threshold = 30,
+log = false,
 ```
 
-> It's not a good idea to enable `cmdline`, because it's used everywhere implicitly.
-
-- `enable`: Fcitx status of each enabled modes is stored separately, others' status is stored together.
-- `guess_initial_status`: Whether to get **initial status** of one mode from related modes whose status is initialized.
-    - `true`(default): enable with default settings
+- `enable`(`table`): Fcitx status of each enabled modes is stored separately, others' status is stored together.
+- `guess_initial_status`(`boolean` or `table`): Whether to get **initial status** of one mode from related modes whose status is initialized.
+    - `true`: enable with default settings
     - `false`: disable
     - A dictionary: detailed configs of guessing strategy
+- `threshold`(`number`): If the time from one input method switching to another is short than `threshold`(in milliseconds), the latter will be skipped. Just leave this as the default if there is no issue.
+- `log`(`false` or `"quickfix"`): Whether and where to show log. When set this to `quickfix`, use `copen` to open quickfix window.
 
-The default guessing strategy:
-
-```lua
-{
-    insert = {'select', 'cmdtext'},
-    cmdline = {'others'},
-    cmdtext = {'insert', 'select'},
-    terminal = {'cmdline', 'others'},
-    select = {'insert', 'cmdtext'},
-    others = {}
-}
-```
-
-This means, for example, the plugins will guess `insert`'s initial status from `select` or `replace` group.
-If the status of any of `select` and `replace` group is stored before, it will be used as `insert`'s initial status.
+The guessing strategy means, for example, the plugins will guess `insert`'s initial status from `select` or `cmdtext` group. If the status of any of `select` and `cmdtext` groups is stored before, it will be used as `insert`'s initial status.
 
 For instance, you don't want guess `insert`'s initial status, thus you can set `guess_initial_status` like this:
 
 ```lua
 guess_initial_status = {
     insert = {}
-    -- ...
+}
+```
+
+It's the same as
+
+
+```lua
+guess_initial_status = {
+    normal   = {},
+    insert   = {},
+    cmdline  = {'normal'},
+    cmdtext  = {'insert', 'select'},
+    terminal = {'cmdline', 'normal'},
+    select   = {'insert', 'cmdtext'},
 }
 ```
 
