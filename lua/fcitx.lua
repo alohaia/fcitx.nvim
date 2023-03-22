@@ -78,9 +78,14 @@ local function guess_status(mode)
     return nil
 end
 
-local function log(lines)
-    if settings.log == "quickfix" then
-        vim.fn.setqflist({}, 'a', {title = "Fcitx.nvim Log", lines = lines})
+local tmp_file_name
+local tmp_file
+local function log(mes, ...)
+    if settings == true or settings.log == "quickfix" then
+       vim.fn.setqflist({}, 'a', {title = "Fcitx.nvim Log", lines = {string.format(mes, ...)}})
+    elseif settings.log == "tmpfile" then
+       tmp_file:write(string.format(mes, ...) .. "\n")
+       tmp_file:flush()
     end
 end
 
@@ -109,7 +114,7 @@ local mode_mapping = setmetatable({
     }
 )
 local prepare_load = nil
-local preparing = ""
+local preparing = {}
 local last_mode = nil
 local function modeChange(behaviour, mode, event)
     if not settings.enable[mode] then
@@ -119,7 +124,7 @@ local function modeChange(behaviour, mode, event)
     if behaviour == "leave" then       -- store status for old mode
         -- if the mode we last entered is not the mode we left from this time
         if last_mode and (mode_mapping[last_mode.raw] ~= mode_mapping[event.old_mode]) then
-            log({"virtual: " .. last_mode.raw .. '->' .. event.old_mode})
+            log("virtual: %s -> %s", last_mode.raw, event.old_mode)
             local ev = {old_mode = last_mode.raw, new_mode = event.old_mode}
             modeChange("leave", last_mode.name, ev)
             modeChange("enter", mode_mapping[event.old_mode], ev)
@@ -127,31 +132,32 @@ local function modeChange(behaviour, mode, event)
 
         if prepare_load then
             prepare_load:stop()
-            log({preparing, "[c]" .. event.old_mode .. "->" .. event.new_mode .. "\t" .. behaviour .. ' ' .. mode .. ", this and ↑ canceled"})
+            log(unpack(preparing))
+            log("[c] %s -> %s\t%s %s, this and ↑ canceled", event.old_mode, event.new_mode, behaviour, mode)
             prepare_load = nil
             goto skip_save
         end
 
         status[mode] = get_status()
-        log({event.old_mode .. "->" .. event.new_mode .. "\t" .. behaviour .. ' ' .. mode .. ", store status " .. status[mode]})
+        log("%s -> %s\t%s %s, , store status %d", event.old_mode, event.new_mode, behaviour, mode, status[mode])
 
         ::skip_save::
 
         -- the mode last entered
         last_mode = {raw = event.new_mode, name = mode_mapping[event.new_mode]}
     elseif behaviour == "enter" then   -- set status for new mode
-        preparing = "[p]".. event.old_mode .. "->" .. event.new_mode .. "\t" .. behaviour .. ' ' .. mode .. ', set status ' .. (status[mode] and status[mode] or "<guessing>")
+        preparing = {"[p] %s -> %s\t%s %s, set status %d", event.old_mode, event.new_mode, behaviour, mode, (status[mode] and status[mode] or "<guessing>")}
         prepare_load = vim.defer_fn(function()
             if status[mode] then
                 set_status(status[mode])
-                log({event.old_mode .. "->" .. event.new_mode .. "\t" .. behaviour .. ' ' .. mode .. ', set status ' .. status[mode]})
+                log("%s -> %s\t%s %s, set status %d", event.old_mode, event.new_mode, behaviour, mode, status[mode])
             elseif settings.guess_initial_status then
                 local guess_result = guess_status(mode)
                 if guess_result then
                     set_status(guess_result)
-                    log({event.old_mode .. "->" .. event.new_mode .. "\t" .. behaviour .. ' ' .. mode .. ', guess status ' .. guess_result})
+                    log("%s -> %s\t%s %s, guess status, %d", event.old_mode, event.new_mode, behaviour, mode, guess_result)
                 else
-                    log({event.old_mode .. "->" .. event.new_mode .. "\t" .. behaviour .. ' ' .. mode .. ', status not found'})
+                    log("%s -> %s\t%s %s, can not guess stauts", event.old_mode, event.new_mode, behaviour, mode)
                 end
             end
 
@@ -167,6 +173,14 @@ return function (_settings)
         _settings.guess_initial_status = _settings.guess_initial_status and nil or {}
     end
     settings = vim.tbl_deep_extend("force", settings, _settings)
+
+    -- prepare log file
+    if settings.log == "tmpfile" then
+        tmp_file_name = os.tmpname()
+        tmp_file = io.open(tmp_file_name, "a")
+        assert(tmp_file, "failed to open tmpfile " .. tmp_file_name)
+        print("tmpfile name: " .. tmp_file_name)
+    end
 
     -- set up auto commands
     local fcitx_au_id = vim.api.nvim_create_augroup("fcitx", {clear=true})

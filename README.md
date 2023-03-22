@@ -76,7 +76,10 @@ log = false,
     - `false`: disable
     - A dictionary: detailed configs of guessing strategy
 - `threshold`(`number`): If the time from one input method switching to another is short than `threshold`(in milliseconds), the latter will be skipped. Just leave this as the default if there is no issue.
-- `log`(`false` or `"quickfix"`): Whether and where to show log. When set this to `quickfix`, use `copen` to open quickfix window.
+- `log`(`boolean` or `string`): Whether and where to show log.
+    - `false`: disable
+    - `"quickfix"` or `true`: use `:copen` to open quickfix window.
+    - `"tmpfile"`: use `tail -f <filename>` to view the logs, the file name will be showed in neovim cmdline after created.
 
 The guessing strategy means, for example, the plugins will guess `insert`'s initial status from `select` or `cmdtext` group. If the status of any of `select` and `cmdtext` groups is stored before, it will be used as `insert`'s initial status.
 
