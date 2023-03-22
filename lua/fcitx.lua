@@ -84,14 +84,30 @@ local function log(lines)
     end
 end
 
-local function which_group(m)
-    if m == 'i' then
-        return 'insert'
-    elseif m == 'n' then
-        return 'normal'
-    end
-end
-
+local mode_mapping = setmetatable({
+        __last_cmd_mode__ = "cmdline",
+        ["c"] = "cmdline",
+        ["n"] = "normal",
+        ["v"] = "normal", ["V"] = "normal", ["\22"] = "normal",
+        ["i"] = "insert",
+        ["s"] = "select", ["S"] = "select", ["\19"] = "select",
+        ["t"] = "terminal", ["!"] = "terminal",
+    }, {
+        __index = function(origin_table, key)
+            if key == "c" then
+                local cmd_mode = cmd_type_map[vim.fn.getcmdtype()]
+                if cmd_mode then
+                    origin_table.__last_cmd_mode__ = cmd_mode
+                    return cmd_mode
+                else
+                    return origin_table.__last_cmd_mode__
+                end
+            else
+                return origin_table[string.sub(key, 1, 1)]
+            end
+        end
+    }
+)
 local prepare_load = nil
 local preparing = ""
 local last_mode = nil
@@ -102,11 +118,11 @@ local function modeChange(behaviour, mode, event)
 
     if behaviour == "leave" then       -- store status for old mode
         -- if the mode we last entered is not the mode we left from this time
-        if last_mode and (last_mode ~= event.old_mode) then
-            log({"virtual: " .. last_mode .. '->' .. event.old_mode})
-            local ev = {old_mode = last_mode, new_mode = event.old_mode}
-            modeChange("leave", which_group(last_mode), ev)
-            modeChange("enter", which_group(event.old_mode), ev)
+        if last_mode and (mode_mapping[last_mode.raw] ~= mode_mapping[event.old_mode]) then
+            log({"virtual: " .. last_mode.raw .. '->' .. event.old_mode})
+            local ev = {old_mode = last_mode.raw, new_mode = event.old_mode}
+            modeChange("leave", last_mode.name, ev)
+            modeChange("enter", mode_mapping[event.old_mode], ev)
         end
 
         if prepare_load then
@@ -121,7 +137,8 @@ local function modeChange(behaviour, mode, event)
 
         ::skip_save::
 
-        last_mode = event.new_mode
+        -- the mode last entered
+        last_mode = {raw = event.new_mode, name = mode_mapping[event.new_mode]}
     elseif behaviour == "enter" then   -- set status for new mode
         preparing = "[p]".. event.old_mode .. "->" .. event.new_mode .. "\t" .. behaviour .. ' ' .. mode .. ', set status ' .. (status[mode] and status[mode] or "<guessing>")
         prepare_load = vim.defer_fn(function()
@@ -157,21 +174,21 @@ return function (_settings)
     if settings.enable.normal then
         vim.api.nvim_create_autocmd("ModeChanged", {
             group = fcitx_au_id,
-            pattern = "[nvV\22]*:*",
+            pattern = "[nvV\22]*:[^nvV\22]*",
             callback = function () modeChange("leave", "normal", vim.v.event) end
         })
     end
     if settings.enable.insert then
         vim.api.nvim_create_autocmd("ModeChanged", {
             group = fcitx_au_id,
-            pattern = "i*:*",
+            pattern = "i*:[^i]*",
             callback = function () modeChange("leave", "insert", vim.v.event) end
         })
     end
     if settings.enable.cmdline or settings.enable.cmdtext then
         vim.api.nvim_create_autocmd("ModeChanged", {
             group = fcitx_au_id,
-            pattern = "c*:*",
+            pattern = "c*:[^c]*",
             callback = function ()
                 modeChange("leave", last_cmd_type, vim.deepcopy(vim.v.event))
             end
@@ -180,14 +197,14 @@ return function (_settings)
     if settings.enable.terminal then
         vim.api.nvim_create_autocmd("ModeChanged", {
             group = fcitx_au_id,
-            pattern = "[t!]:*",
+            pattern = "[t!]:[^t!]*",
             callback = function () modeChange("leave", "terminal", vim.v.event) end
         })
     end
     if settings.enable.select then
         vim.api.nvim_create_autocmd("ModeChanged", {
             group = fcitx_au_id,
-            pattern = "[sS\19]:*",
+            pattern = "[sS\19]:[^sS\19]",
             callback = function () modeChange("leave", "select", vim.v.event) end
         })
     end
@@ -195,21 +212,21 @@ return function (_settings)
     if settings.enable.normal then
         vim.api.nvim_create_autocmd("ModeChanged", {
             group = fcitx_au_id,
-            pattern = "*:[nvV\22]*",
+            pattern = "[^nvV\22]*:[nvV\22]*",
             callback = function () modeChange("enter", "normal", vim.v.event) end
         })
     end
     if settings.enable.insert then
         vim.api.nvim_create_autocmd("ModeChanged", {
             group = fcitx_au_id,
-            pattern = "*:i*",
+            pattern = "[^i]*:i*",
             callback = function () modeChange("enter", "insert", vim.v.event) end
         })
     end
     if settings.enable.cmdline or settings.enable.cmdtext then
         vim.api.nvim_create_autocmd("ModeChanged", {
             group = fcitx_au_id,
-            pattern = "*:c*",
+            pattern = "[^c]*:c*",
             callback = function ()
                 local mode = cmd_type_map[vim.fn.getcmdtype()]
                 modeChange("enter", mode, vim.deepcopy(vim.v.event))
@@ -220,14 +237,14 @@ return function (_settings)
     if settings.enable.terminal then
         vim.api.nvim_create_autocmd("ModeChanged", {
             group = fcitx_au_id,
-            pattern = "*:[t!]",
+            pattern = "[^t!]*:[t!]",
             callback = function () modeChange("enter", "terminal", vim.v.event) end
         })
     end
     if settings.enable.select then
         vim.api.nvim_create_autocmd("ModeChanged", {
             group = fcitx_au_id,
-            pattern = "*:[sS\19]",
+            pattern = "[^sS\19]:[sS\19]",
             callback = function () modeChange("enter", "select", vim.v.event) end
         })
     end
