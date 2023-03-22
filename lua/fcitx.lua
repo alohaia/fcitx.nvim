@@ -37,8 +37,12 @@ local settings = {
 }
 
 -- execute a command and return its output
-local function exec(cmd, ...)
-    return vim.fn.trim(vim.fn.system(vim.fn.join({cmd, ...}, ' ')))
+local function exec(cmd)
+    local output = io.popen(cmd, "r")
+    assert(output, string.format("failed"))
+    local rv = output:read()
+    output:close()
+    return rv
 end
 
 -- get_status, set_status:
@@ -49,9 +53,9 @@ local function get_status()
 end
 local function set_status(to_status)
     if to_status == 1 then
-        exec(fcitx_remote, "-c")
+        exec(fcitx_remote .. " -c")
     elseif to_status == 2 then
-        exec(fcitx_remote, "-o")
+        exec(fcitx_remote .. " -o")
     end
 end
 
