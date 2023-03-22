@@ -92,20 +92,10 @@ local function which_group(m)
     end
 end
 
-local last_cmd_type = ""
 local prepare_load = nil
 local preparing = ""
 local last_mode = nil
 local function modeChange(behaviour, mode, event)
-    if mode == "cmd" then
-        if behaviour == "enter" then
-            mode = cmd_type_map[vim.fn.getcmdtype()]
-            last_cmd_type = mode
-        elseif behaviour == "leave" then
-            -- getcmdtype() returns empty string when leaving cmd mode
-            mode = last_cmd_type
-        end
-    end
     if not settings.enable[mode] then
         return
     end
@@ -134,8 +124,7 @@ local function modeChange(behaviour, mode, event)
         last_mode = event.new_mode
     elseif behaviour == "enter" then   -- set status for new mode
         preparing = "[p]".. event.old_mode .. "->" .. event.new_mode .. "\t" .. behaviour .. ' ' .. mode .. ', set status ' .. (status[mode] and status[mode] or "<guessing>")
-        prepare_load = vim.loop.new_timer()
-        prepare_load:start(settings.threshold, 0, vim.schedule_wrap(function()
+        prepare_load = vim.defer_fn(function()
             if status[mode] then
                 set_status(status[mode])
                 log({event.old_mode .. "->" .. event.new_mode .. "\t" .. behaviour .. ' ' .. mode .. ', set status ' .. status[mode]})
@@ -150,10 +139,11 @@ local function modeChange(behaviour, mode, event)
             end
 
             prepare_load = nil
-        end))
+        end, settings.threshold)
     end
 end
 
+local last_cmd_type = "cmdline"  -- default as "cmdline"
 return function (_settings)
     -- update settings
     if type(_settings.guess_initial_status) == "boolean" then
@@ -182,7 +172,9 @@ return function (_settings)
         vim.api.nvim_create_autocmd("ModeChanged", {
             group = fcitx_au_id,
             pattern = "c*:*",
-            callback = function () modeChange("leave", "cmd", vim.v.event) end
+            callback = function ()
+                modeChange("leave", last_cmd_type, vim.deepcopy(vim.v.event))
+            end
         })
     end
     if settings.enable.terminal then
@@ -218,7 +210,11 @@ return function (_settings)
         vim.api.nvim_create_autocmd("ModeChanged", {
             group = fcitx_au_id,
             pattern = "*:c*",
-            callback = function () modeChange("enter", "cmd", vim.v.event) end
+            callback = function ()
+                local mode = cmd_type_map[vim.fn.getcmdtype()]
+                modeChange("enter", mode, vim.deepcopy(vim.v.event))
+                last_cmd_type = mode
+            end
         })
     end
     if settings.enable.terminal then
