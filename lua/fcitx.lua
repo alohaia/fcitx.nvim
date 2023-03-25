@@ -9,13 +9,12 @@ elseif vim.fn.exists("$DISPLAY") == 0 and vim.fn.exists("$WAYLAND_DISPLAY") == 0
     return
 end
 
-local status = {}
 local cmd_type_map = {
     [':'] = 'cmdline', ['>'] = 'cmdline', ['='] = 'cmdline',
     ['/'] = 'cmdtext', ['?'] = 'cmdtext', ['@'] = 'cmdtext', ['-'] = 'cmdtext',
 }
--- default settings
 local settings = {
+    -- default settings
     enable = {
         normal   = true,
         insert   = true,
@@ -35,6 +34,45 @@ local settings = {
     threshold = 30,
     log = false,
 }
+
+local _status = {}
+local status = setmetatable({}, {
+    __newindex = function(_, key, value)
+        if not settings.enable[key] then
+            return
+        elseif type(settings.enable[key]) == "string" then
+            key = settings.enable[key]
+        end
+        _status[key] = value
+    end,
+    __index = function(_, key)
+        if not settings.enable[key] then
+            return
+        elseif type(settings.enable[key]) == "string" then
+            key = settings.enable[key]
+        end
+
+        if _status[key] then
+            return _status[key]
+        end
+
+        -- guess initial status
+        -- return nil if settings.guess_initial_status is nil or false
+        local strategy
+        -- settings.guess_initial_status must be a table
+        if not settings.guess_initial_status then
+            return
+        else
+            strategy = settings.guess_initial_status
+        end
+
+        for _,m in pairs(strategy[key]) do
+            if _status[m] then
+                return _status[m]
+            end
+        end
+    end
+})
 
 -- execute a command and return its output
 local function exec(cmd)
@@ -57,25 +95,6 @@ local function set_status(to_status)
     elseif to_status == 2 then
         exec(fcitx_remote .. " -o")
     end
-end
-
--- guess initial status
--- return nil if settings.guess_initial_status is nil or false
-local function guess_status(mode)
-    local strategy
-    -- settings.guess_initial_status must be a table
-    if not settings.guess_initial_status then
-        return nil
-    else
-        strategy = settings.guess_initial_status
-    end
-
-    for _,m in pairs(strategy[mode]) do
-        if status[m] then
-            return status[m]
-        end
-    end
-    return nil
 end
 
 local tmp_file_name
@@ -151,14 +170,8 @@ local function modeChange(behaviour, mode, event)
             if status[mode] then
                 set_status(status[mode])
                 log("%s -> %s\t%s %s, set status %d", event.old_mode, event.new_mode, behaviour, mode, status[mode])
-            elseif settings.guess_initial_status then
-                local guess_result = guess_status(mode)
-                if guess_result then
-                    set_status(guess_result)
-                    log("%s -> %s\t%s %s, guess status, %d", event.old_mode, event.new_mode, behaviour, mode, guess_result)
-                else
-                    log("%s -> %s\t%s %s, can not guess stauts", event.old_mode, event.new_mode, behaviour, mode)
-                end
+            else
+                log("%s -> %s\t%s %s, can get target stauts, keep status", event.old_mode, event.new_mode, behaviour, mode)
             end
 
             prepare_load = nil
@@ -169,6 +182,7 @@ end
 local last_cmd_type = "cmdline"  -- default as "cmdline"
 return function (_settings)
     -- update settings
+    -- ensure guess_initial_status is a table
     if type(_settings.guess_initial_status) == "boolean" then
         _settings.guess_initial_status = _settings.guess_initial_status and nil or {}
     end

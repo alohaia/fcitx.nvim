@@ -70,7 +70,9 @@ threshold = 30,
 log = false,
 ```
 
-- `enable`(`table`): Fcitx status of each enabled modes is stored separately, others' status is stored together.
+- `enable`(`table`): Fcitx status of each enabled modes is stored separately. The value's type of each key can be `boolean` or `string`
+    - `true` or `false`: Whether to enable status storing and restoring for this mode group.
+    - A string : The status of the group specified by the key will keep the same as the status of the group specified by the value of the key.
 - `guess_initial_status`(`boolean` or `table`): Whether to get **initial status** of one mode from related modes whose status is initialized.
     - `true`: enable with default settings
     - `false`: disable
@@ -104,6 +106,8 @@ guess_initial_status = {
     select   = {'insert', 'cmdtext'},
 }
 ```
+
+> Tips: You can just set enable.select = "insert" to keep the statuses of select and insert the same. It's like that they are one group.
 
 ## Alternative
 
