@@ -110,7 +110,6 @@ end
 
 local mode_mapping = setmetatable({
         __last_cmd_mode__ = "cmdline",
-        ["c"] = "cmdline",
         ["n"] = "normal",
         ["v"] = "normal", ["V"] = "normal", ["\22"] = "normal",
         ["i"] = "insert",
@@ -121,13 +120,13 @@ local mode_mapping = setmetatable({
             if key == "c" then
                 local cmd_mode = cmd_type_map[vim.fn.getcmdtype()]
                 if cmd_mode then
-                    origin_table.__last_cmd_mode__ = cmd_mode
+                    rawset(origin_table, "__last_cmd_mode__", cmd_mode)
                     return cmd_mode
                 else
-                    return origin_table.__last_cmd_mode__
+                    return rawget(origin_table, "__last_cmd_mode__")
                 end
             else
-                return origin_table[string.sub(key, 1, 1)]
+                return rawget(origin_table, string.sub(key, 1, 1))
             end
         end
     }
